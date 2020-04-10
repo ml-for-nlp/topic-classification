@@ -1,16 +1,31 @@
-# SVMs for topic classification
+# SVMs for Alzheimer detection
 
-This is an implementation of an SVM classifier for topic classification, given a set of documents expressed as vectors.
+This is an implementation of an SVM classifier for Alzheimer detection, given a set of blog posts written by patients and family members. It will give us the opportunity to have a look at the output of an SVM, and also to understand how to be conifident about our results (spoiler... the main question will be: are our features sensible?)
 
 ### The data
 
-In your data/ directory, you will find some csv files created by the [PeARS](http://pearsearch.org/) search engine. These files contain representations of web documents as 400-dimensional vectors, sorted by topics (one file per topic).
+The data will be provided to you in a processed form. The raw blog posts can be found here: [https://github.com/vmasrani/blog_corpus](https://github.com/vmasrani/blog_corpus)
 
-You will first need to decompress all files in that directory. Do:
+Detecting Dementia through Retrospective Analysis of Routine Blog Posts by Bloggers with Dementia,
+V. Masrani and G. Murray and T. Field and G. Carenini, ACL 2017 BioNLP Workshop, Vancouver, Canada.
 
-    cd data
-    for f in *bz2; do bzip2 -d $f; done
-    cd ..
+
+### Preparing features
+
+The repo contains slight variants of scripts that you are already familiar with (from the search engine practical):
+
+* **ngrams.py:** for each class, outputs a count file of all ngrams with a specific size. Run with 
+    python3 ngrams.py [ngram size].
+* **words.py**: the equivalent of the ngrams.py script, for word tokens. Run with
+    python3 words.py
+* **output\_top_tf\_idfs.py**: for each class, outputs a tf\_idf file with the top k features for that class. Run with 
+    python3 output\_top_tf\_idfs.py [num_features_per_class].
+* **mk_doc_vectors**: this one is a slight variant on *mk_category_vectors* in the search engine practical. It makes vectors for each blog post in the data, using the features from the tf\_idf files. Run with 
+    python3 mk_doc_vectors 
+(it will take a few minutes, especially if you have many features. So make yourself a cup of coffee...)
+
+Prepare your features using the above scripts (for ngrams, use sizes in range 3-6). You should end up with a set of document vectors for both classes.
+
 
 ### Running the SVM
 
@@ -24,46 +39,38 @@ Instead of *linear*, you could also use *poly* for a polynomial kernel or *rbf* 
 
     python3 classification.py --C=100 --kernel=poly --degree=5
 
-The program will ask you to choose two topics out of a list (remember that SVMs are binary classifiers). For instance:
+The program will ask you to choose how many training instances you want to use for each class. E.g.:
 
-    ['string theory', 'harry potter', 'star wars', 'black panther film', 'black panthers', 'opera']
-    Enter topic 1: harry potter
-    Enter topic 2: star wars
+    class1 has 787 documents. How many do you want for training? 400
+    class2 has 415 documents. How many do you want for training? 100
 
-You can then choose how many training instances you want to use for each class. E.g.:
-
-    star wars has 787 documents. How many do you want for training? 400
-    star trek has 415 documents. How many do you want for training? 100
-
-We then get the output of the SVM, the score over the test data, and the URL corresponding to the support vectors for the classification. Two confusion matrices will also be printed as .png in your directory, showing the errors made by the system (one version shows error frequencies, and the other percentages of errors).
+We then get the output of the SVM, the score over the test data. Two confusion matrices will also be printed as .png in your directory, showing the errors made by the system (one version shows error frequencies, and the other percentages of errors).
 
 In addition, you can output the URLs corresponding to the support vectors for the classification using the --show-urls flag:
 
-    python3 classification.py --C=100 --kernel=linear --show-urls
+    python3 classification.py --C=100 --kernel=linear --show-support
+
+
 
 
 ### Inspecting support vectors
 
 Run the classifier with different kernels and notice the difference in number of support vectors selected by the classifier (that is the *nSV* value in the output). What do you conclude?
 
-Open the web pages for a few support vectors. What do you notice?
+Check out the documents for a few support vectors. What do you notice?
+
+
+
+### Understanding your feature set
+
+What are your results like? Too bad? Too good? Go and look at your feature set in *data/vocab_file.txt*. Is everything as it should be? 
+
+What happens when you change the number of features in *output\_top\_tf\_idfs.py*? Do you now see why you are getting the kind of results you're seeing? 
+
+Change your feature set to have more sensible results... You can split the work between yourselves and implement / test different possible ideas.
+
 
 
 ### Understanding the effect of class distribution
 
-Try and play with the number of documents you use for training in each class. What do you notice? Is there a correlation between how balanced the training data is and how close the topics are? For instance, compare unbalanced training data in the case of *star wars* vs *star trek* and *star wars* vs *clunch*.
-
-
-### Analysing search engine queries
-
-Now, for the ultimate test... add the --real-queries flag when you run the classifier:
-
-    python3 classification.py --C=100 --kernel=linear --real-queries
-
-This will output a set of queries, and which of the two chosen classes they were classified into. We are checking here whether, for the queries that are actually related to one of the two classes, the assignment is correct.
-
-Why do you think things work on such small `documents'? (Queries are only a few words long...)
-
-The vectors for documents and queries are normalised (see utils.py). Do you understand why?
-
-
+Try and play with the number of documents you use for training in each class. What do you notice? Is there a correlation between how balanced the training data is and how close the topics are? 
